@@ -10,6 +10,8 @@ import subprocess
 from urlparse import urlparse
 from urllib import unquote
 import argparse
+from itertools import starmap
+import operator
 
 if not hasattr(subprocess, 'DEVNULL'):
     subprocess.DEVNULL = io.open(os.devnull, 'wb')
@@ -19,17 +21,12 @@ __all__ = ['restore']
 
 LOGGER = logging.getLogger(__name__)
 
-def base_arguments(url, program):
-    args = [os.path.join(unquote(url.path), program) if url.path else program]
-    if url.hostname:
-        args += ['-h', unquote(url.hostname)]
-    if url.port:
-        args += ['-p', str(url.port)]
-    if url.username:
-        args += ['-U', unquote(url.username)]
-    if url.password:
-        args += ['-W', unquote(url.password)]
-    return args
+def base_arguments(url, program): return reduce(operator.add,
+    starmap(
+        lambda arg, param, wrapper: ([arg, wrapper(param)] if param else []),
+        [('-h', url.hostname, unquote), ('-p', url.port, str),
+         ('-U', url.username, unquote), ('-W', url.password, unquote)]),
+    [os.path.join(unquote(url.path), program) if url.path else program])
 
 def echo_url(url):
     return re.sub(
