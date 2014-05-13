@@ -16,9 +16,11 @@ Examples
 ```
 
 ```python
-with open("dump_file.sql", 'rb') as dump:
-    postgres = restore(dump, 'dbname',
-                       ["postgres://localhost:5432",
-                        "postgres://localhost:5433"],
-                       drop=True)
+from urlparse import urlparse
+
+with open("dump_file.sql", 'rb') as dumpobj:
+    postgres = restore(dumpobj, 'dbname',
+       [urlparse("postgres://localhost:5432/usr/lib64/postgresql-8.4/bin"),
+        urlparse("postgres://localhost:5433/usr/lib64/postgresql-9.1/bin")],
+       drop=True)
 ```
