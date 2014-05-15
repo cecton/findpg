@@ -139,8 +139,12 @@ def main():
     with io.open(args.dump, 'rb') as dump:
         postgres = restore(dump, args.dbname, postgres_list, drop=args.clean)
 
-    print "Dump restored on database \"%s\" on %s" \
-          % (args.dbname, echo_url(postgres))
+    if postgres:
+        print "Dump restored on database \"%s\" on %s" \
+              % (args.dbname, echo_url(postgres))
+    else:
+        print "Failed to restore dump \"%s\" using:\n%s" \
+              % (args.dbname, "\n".join(map(echo_url, postgres_list)))
 
 if __name__ == '__main__':
     main()
