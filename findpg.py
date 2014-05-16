@@ -60,14 +60,16 @@ def restore(fileobj, dbname, postgres_list, drop=False):
     psql = []
     succeeded = None
     try:
-        for postgres in postgres_list:
+        # open the psql pipes in the reverse order to avoid some bug that
+        # make a psql unable to exit when its stdin is closed
+        for postgres in reversed(postgres_list):
             LOGGER.debug("Starting psql on %s", echo_url(postgres))
             pipe = subprocess.Popen(
                 base_arguments(postgres, 'psql') + \
                 ['-v', 'ON_ERROR_STOP=1', dbname], stdin=subprocess.PIPE,
                 stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
             LOGGER.debug("psql pid=%d", pipe.pid)
-            psql.append(pipe)
+            psql.insert(0, pipe)
 
         # execute line on each instance
         line = fileobj.readline()
