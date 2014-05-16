@@ -1,5 +1,6 @@
 #!/usr/bin/env python2
 
+import sys
 import os
 import io
 import re
@@ -136,8 +137,11 @@ def main():
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)
 
-    with io.open(args.dump, 'rb') as dump:
-        postgres = restore(dump, args.dbname, postgres_list, drop=args.clean)
+    if args.dump == '-' or not os.isatty(sys.stdin.fileno()):
+        postgres = restore(sys.stdin, args.dbname, postgres_list, drop=args.clean)
+    else:
+        with io.open(args.dump, 'rb') as dump:
+            postgres = restore(dump, args.dbname, postgres_list, drop=args.clean)
 
     if postgres:
         print "Dump restored on database \"%s\" on %s" \
