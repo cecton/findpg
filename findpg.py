@@ -87,6 +87,8 @@ def restore(fileobj, dbname, postgres_list, drop=False):
 
                 while any(select([pipe.stderr], [], [], 0)):
                     errline = pipe.stderr.readline()
+                    if not errline:
+                        break
                     if errline.startswith("ERROR:"):
                         LOGGER.info("Does not import on %s (pipe pid=%d), "
                                     "reason is: %s"
