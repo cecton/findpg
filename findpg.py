@@ -66,7 +66,7 @@ def restore(fileobj, dbname, postgres_list, drop=False):
             LOGGER.debug("Starting psql on %s", echo_url(postgres))
             pipe = subprocess.Popen(
                 base_arguments(postgres, 'psql') + \
-                ['-v', 'ON_ERROR_STOP=1', dbname], stdin=subprocess.PIPE,
+                ['-X', '-v', 'ON_ERROR_STOP=1', dbname], stdin=subprocess.PIPE,
                 stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
             LOGGER.debug("psql pid=%d", pipe.pid)
             psql.insert(0, pipe)
