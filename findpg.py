@@ -46,12 +46,13 @@ def restore(fileobj, dbname, postgres_list, drop=False):
         if drop:
             LOGGER.debug("Dropping database \"%s\" on %s"
                          % (dbname, echo_url(postgres)))
-            subprocess.call(base_arguments(postgres, 'dropdb') + [dbname],
-                stderr=subprocess.DEVNULL)
+            subprocess.call(base_arguments(postgres, 'dropdb') +
+                            ['-w', dbname],
+                            stderr=subprocess.DEVNULL)
         LOGGER.debug("Creating database \"%s\" on %s"
                      % (dbname, echo_url(postgres)))
         # NOTE: do not use check_call, it displays the full command parameters
-        cmd = base_arguments(postgres, 'createdb') + [dbname]
+        cmd = base_arguments(postgres, 'createdb') + ['-w', dbname]
         retcode = subprocess.call(cmd)
         if retcode:
             raise subprocess.CalledProcessError(retcode, cmd[:1])
@@ -66,7 +67,8 @@ def restore(fileobj, dbname, postgres_list, drop=False):
             LOGGER.debug("Starting psql on %s", echo_url(postgres))
             pipe = subprocess.Popen(
                 base_arguments(postgres, 'psql') + \
-                ['-X', '-v', 'ON_ERROR_STOP=1', dbname], stdin=subprocess.PIPE,
+                ['-wX', '-v', 'ON_ERROR_STOP=1', dbname],
+                stdin=subprocess.PIPE,
                 stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
             LOGGER.debug("psql pid=%d", pipe.pid)
             psql.insert(0, pipe)
@@ -114,7 +116,7 @@ def restore(fileobj, dbname, postgres_list, drop=False):
                 LOGGER.debug("Dropping database \"%s\" on %s"
                              % (dbname, echo_url(postgres)))
                 retcode = subprocess.call(
-                    base_arguments(postgres, 'dropdb') + [dbname])
+                    base_arguments(postgres, 'dropdb') + ['-w', dbname])
                 if retcode:
                     LOGGER.error("Failed to drop database")
 
