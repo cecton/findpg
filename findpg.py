@@ -142,6 +142,8 @@ def main():
 
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)
+    else:
+        logging.basicConfig(level=logging.INFO)
 
     if args.dump == '-' or not os.isatty(sys.stdin.fileno()):
         postgres = restore(sys.stdin, args.dbname, postgres_list, drop=args.clean)
