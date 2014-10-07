@@ -1,5 +1,7 @@
 #!/usr/bin/env python2
 
+from __future__ import print_function
+
 import sys
 import os
 import io
@@ -33,11 +35,12 @@ def echo_url(url):
     return re.sub(
         r"^([a-z0-9]+://[^/:]+:)[^/@]+@", r"\1********@", url.geturl())
 
-def restore(fileobj, dbname, postgres_list, drop=False):
+def restore(it, dbname, postgres_list, drop=False):
     """
-    Restore a SQL dump read from fileobj by creating the database dbname on
-    each PostgreSQL instance provided by urls in postgres_list. Drop the
-    database prior to the operation if drop is not falsy. URLs are in format
+    Restore a SQL dump read from an iterable (can be a fileobj) by creating the
+    database dbname on each PostgreSQL instance provided by urls in
+    postgres_list. Drop the database prior to the operation if drop is not
+    falsy. URLs are in format
     postgres://[user[:password]@][host][:port][/bin_path]
     """
 
@@ -74,14 +77,13 @@ def restore(fileobj, dbname, postgres_list, drop=False):
             psql.insert(0, pipe)
 
         # execute line on each instance
-        line = fileobj.readline()
-        while line:
+        for line in it:
             for pipe, postgres in zip(psql, postgres_list):
                 if pipe.poll() is not None:
                     continue
 
                 try:
-                    pipe.stdin.write(line)
+                    print(line, file=pipe.stdin)
                     pipe.stdin.flush()
                 except IOError, exc:
                     if not exc.errno == errno.EPIPE:
@@ -98,8 +100,6 @@ def restore(fileobj, dbname, postgres_list, drop=False):
                                        errline.rstrip()))
                         pipe.wait()
                         break
-
-            line = fileobj.readline()
 
     finally:
         for pipe, postgres in zip(psql, postgres_list):
@@ -149,11 +149,11 @@ def main():
     postgres = restore(args.dump, args.dbname, postgres_list, drop=args.clean)
 
     if postgres:
-        print "Dump restored on database \"%s\" on %s" \
-              % (args.dbname, echo_url(postgres))
+        print("Dump restored on database \"%s\" on %s" \
+              % (args.dbname, echo_url(postgres)))
     else:
-        print "Failed to restore dump \"%s\" using:\n%s" \
-              % (args.dbname, "\n".join(map(echo_url, postgres_list)))
+        print("Failed to restore dump \"%s\" using:\n%s" \
+              % (args.dbname, "\n".join(map(echo_url, postgres_list))))
 
 if __name__ == '__main__':
     main()
