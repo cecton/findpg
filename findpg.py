@@ -129,7 +129,8 @@ def restore(fileobj, dbname, postgres_list, drop=False):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--dbname', '-d', dest='dbname', required=True)
-    parser.add_argument('--dump', required=True)
+    parser.add_argument('--dump', default=sys.stdin,
+                        type=argparse.FileType('r'))
     parser.add_argument('--clean', '-c', action='store_true', default=False,
         help="Clean (drop) database objects before recreating them.")
     parser.add_argument('--debug', action='store_true',
@@ -145,11 +146,7 @@ def main():
     else:
         logging.basicConfig(level=logging.INFO)
 
-    if args.dump == '-' or not os.isatty(sys.stdin.fileno()):
-        postgres = restore(sys.stdin, args.dbname, postgres_list, drop=args.clean)
-    else:
-        with io.open(args.dump, 'rb') as dump:
-            postgres = restore(dump, args.dbname, postgres_list, drop=args.clean)
+    postgres = restore(args.dump, args.dbname, postgres_list, drop=args.clean)
 
     if postgres:
         print "Dump restored on database \"%s\" on %s" \
