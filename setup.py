@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name = "findpg",
-    version = "1.0",
+    version = "2.0",
     author = "Cecile Tonglet",
     author_email = "cecile.tonglet@gmail.com",
     description = ("Find the best suited version of PostgreSQL to restore a "
