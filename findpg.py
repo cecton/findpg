@@ -17,7 +17,7 @@ from itertools import starmap
 import operator
 
 if not hasattr(subprocess, 'DEVNULL'):
-    subprocess.DEVNULL = io.open(os.devnull, 'wb')
+    subprocess.DEVNULL = io.open(os.devnull, 'w+b')
 
 __all__ = ['restore']
 
@@ -50,13 +50,15 @@ def restore(it, dbname, postgres_list, drop=False):
             LOGGER.debug("Dropping database \"%s\" on %s"
                          % (dbname, echo_url(postgres)))
             subprocess.call(base_arguments(postgres, 'dropdb') +
-                            ['-w', dbname],
-                            stderr=subprocess.DEVNULL)
+                            [dbname],
+                            stdout=subprocess.DEVNULL,
+                            stderr=subprocess.DEVNULL,
+                            stdin=subprocess.DEVNULL)
         LOGGER.debug("Creating database \"%s\" on %s"
                      % (dbname, echo_url(postgres)))
         # NOTE: do not use check_call, it displays the full command parameters
-        cmd = base_arguments(postgres, 'createdb') + ['-w', dbname]
-        retcode = subprocess.call(cmd)
+        cmd = base_arguments(postgres, 'createdb') + [dbname]
+        retcode = subprocess.call(cmd, stdin=subprocess.DEVNULL)
         if retcode:
             raise subprocess.CalledProcessError(retcode, cmd[:1])
 
