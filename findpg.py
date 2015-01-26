@@ -118,7 +118,8 @@ def restore(it, dbname, postgres_list, drop=False):
                 LOGGER.debug("Dropping database \"%s\" on %s"
                              % (dbname, echo_url(postgres)))
                 retcode = subprocess.call(
-                    base_arguments(postgres, 'dropdb') + ['-w', dbname])
+                    base_arguments(postgres, 'dropdb') + [dbname],
+                    stdin=subprocess.DEVNULL)
                 if retcode:
                     LOGGER.error("Failed to drop database")
 
