@@ -65,6 +65,7 @@ def restore(it, dbname, postgres_list, drop=False):
     # run psql sub processes
     psql = []
     succeeded = None
+    failed = 0
     try:
         # open the psql pipes in the reverse order to avoid some bug that
         # make a psql unable to exit when its stdin is closed
@@ -101,7 +102,11 @@ def restore(it, dbname, postgres_list, drop=False):
                                     % (echo_url(postgres), pipe.pid,
                                        errline.rstrip()))
                         pipe.wait()
+                        failed += 1
                         break
+
+            if failed == len(psql):
+                break
 
     finally:
         for pipe, postgres in zip(psql, postgres_list):
