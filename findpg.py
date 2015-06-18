@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 
 from __future__ import print_function
 
@@ -10,10 +10,14 @@ import errno
 from select import select
 import logging
 import subprocess
-from urlparse import urlparse
-from urllib import unquote
+if sys.version_info < (3, 0):
+    from urllib import unquote
+    from urlparse import urlparse
+else:
+    from urllib.parse import urlparse, unquote
 import argparse
 from itertools import starmap
+from functools import reduce
 import operator
 
 if not hasattr(subprocess, 'DEVNULL'):
@@ -35,7 +39,7 @@ def echo_url(url):
     return re.sub(
         r"^([a-z0-9]+://[^/:]+:)[^/@]+@", r"\1********@", url.geturl())
 
-def restore(it, dbname, postgres_list, drop=False):
+def restore(dbname, postgres_list, lines=None, fileobj=None, drop=False):
     """
     Restore a SQL dump read from an iterable (can be a fileobj) by creating the
     database dbname on each PostgreSQL instance provided by urls in
@@ -78,17 +82,21 @@ def restore(it, dbname, postgres_list, drop=False):
                 stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
             LOGGER.debug("psql pid=%d", pipe.pid)
             psql.insert(0, pipe)
+            pipe.line_input = io.open(pipe.stdin.fileno(), 'wt', closefd=False)
 
         # execute line on each instance
-        for line in it:
+        for line in (fileobj or lines):
             for pipe, postgres in zip(psql, postgres_list):
                 if pipe.poll() is not None:
                     continue
 
                 try:
-                    print(line, file=pipe.stdin)
+                    if fileobj:
+                        pipe.stdin.write(line)
+                    else:
+                        print(bytes(line), file=pipe.stdin)
                     pipe.stdin.flush()
-                except IOError, exc:
+                except IOError as exc:
                     if not exc.errno == errno.EPIPE:
                         raise
 
@@ -96,7 +104,7 @@ def restore(it, dbname, postgres_list, drop=False):
                     errline = pipe.stderr.readline()
                     if not errline:
                         break
-                    if errline.startswith("ERROR:"):
+                    if errline.startswith(b"ERROR:"):
                         LOGGER.info("Does not import on %s (pipe pid=%d), "
                                     "reason is: %s"
                                     % (echo_url(postgres), pipe.pid,
@@ -137,8 +145,8 @@ def restore(it, dbname, postgres_list, drop=False):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--dbname', '-d', dest='dbname', required=True)
-    parser.add_argument('--dump', default=sys.stdin,
-                        type=argparse.FileType('r'))
+    parser.add_argument('--dump', default=io.open(sys.stdin.fileno(), 'rb'),
+                        type=argparse.FileType('rb'))
     parser.add_argument('--clean', '-c', action='store_true', default=False,
         help="Clean (drop) database objects before recreating them.")
     parser.add_argument('--debug', action='store_true',
@@ -147,14 +155,15 @@ def main():
         help="postgres://[username[:password]@][host][:port][/bin_path]")
     args = parser.parse_args()
 
-    postgres_list = map(urlparse, args.postgres)
+    postgres_list = [urlparse(x) for x in args.postgres]
 
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)
     else:
         logging.basicConfig(level=logging.INFO)
 
-    postgres = restore(args.dump, args.dbname, postgres_list, drop=args.clean)
+    postgres = restore(args.dbname, postgres_list,
+                       drop=args.clean, fileobj=args.dump)
 
     if postgres:
         print("Dump restored on database \"%s\" on %s" \
